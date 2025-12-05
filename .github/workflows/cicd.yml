@@ -31,14 +31,16 @@ jobs:
           docker push $IMAGE_NAME:${{ github.sha }}
           docker push $IMAGE_NAME:latest
 
-      - name: Deploy to Azure VM via SSH
+        - name: Deploy to Azure VM via SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
-            docker pull $IMAGE_NAME:latest
+            IMAGE="glitchit001/todo-app:latest"
+
+            docker pull $IMAGE
             docker stop todo-app || true
             docker rm todo-app || true
-            docker run -d --name todo-app -p 80:5000 $IMAGE_NAME:latest
+            docker run -d --name todo-app -p 80:5000 $IMAGE
