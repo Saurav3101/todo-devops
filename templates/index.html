@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+
+    <!-- Add Task Form -->
+    <form action="{{ url_for('add') }}" method="POST" class="d-flex mb-3">
+      <input
+        type="text"
+        name="text"
+        class="form-control me-2"
+        placeholder="Add a new task..."
+        required
+      >
+      <button class="btn btn-primary" type="submit">Add</button>
+    </form>
+
+    <!-- To-Do List -->
+    <ul class="list-group">
+      {% if todos %}
+        {% for todo in todos %}
+          <li class="list-group-item d-flex align-items-center justify-content-between">
+            <div>
+              <form
+                action="{{ url_for('toggle', todo_id=todo.id) }}"
+                method="POST"
+                style="display: inline"
+              >
+                <button class="btn btn-sm btn-outline-success me-2" type="submit">
+                  {% if todo.done %}✔{% else %}○{% endif %}
+                </button>
+              </form>
+
+              <span style="{% if todo.done %}text-decoration: line-through; color: gray;{% endif %}">
+                {{ todo.text }}
+              </span>
+            </div>
+
+            <form
+              action="{{ url_for('delete', todo_id=todo.id) }}"
+              method="POST"
+              style="display: inline"
+            >
+              <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+            </form>
+          </li>
+        {% endfor %}
+      {% else %}
+        <li class="list-group-item text-center text-muted">
+          No tasks yet. Add one above!
+        </li>
+      {% endif %}
+    </ul>
+
+  </div>
+</div>
+{% endblock %}
