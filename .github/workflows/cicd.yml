@@ -1,8 +1,9 @@
-name: CI/CD - Docker to Azure VM
+name: build-and-deploy
 
 on:
   push:
-    branches: ["master"]   # your branch is master
+    branches:
+      - master
 
 env:
   IMAGE_NAME: glitchit001/todo-app
@@ -12,35 +13,62 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Set up job
+      run: echo "Starting CI/CD Pipeline..."
 
-      - name: Build Docker image
-        run: |
-          docker build -t $IMAGE_NAME:${{ github.sha }} .
-          docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
+    # ----------------------------------------
+    # 1. CHECKOUT REPO
+    # ----------------------------------------
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Push Docker image to Docker Hub
-        run: |
-          docker push $IMAGE_NAME:${{ github.sha }}
-          docker push $IMAGE_NAME:latest
+    # ----------------------------------------
+    # 2. Login to Docker Hub
+    # ----------------------------------------
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: glitchit001
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-        - name: Deploy to Azure VM via SSH
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.AZURE_VM_HOST }}
-          username: ${{ secrets.AZURE_VM_USER }}
-          key: ${{ secrets.AZURE_VM_SSH_KEY }}
-          script: |
-            IMAGE="glitchit001/todo-app:latest"
+    # ----------------------------------------
+    # 3. Build Docker Image
+    # ----------------------------------------
+    - name: Build Docker image
+      run: |
+        docker build -t $IMAGE_NAME:${{ github.sha }} .
+        docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
 
-            docker pull $IMAGE
-            docker stop todo-app || true
-            docker rm todo-app || true
-            docker run -d --name todo-app -p 80:5000 $IMAGE
+    # ----------------------------------------
+    # 4. Push Docker image to Docker Hub
+    # ----------------------------------------
+    - name: Push Docker image to Docker Hub
+      run: |
+        docker push $IMAGE_NAME:${{ github.sha }}
+        docker push $IMAGE_NAME:latest
+
+    # ----------------------------------------
+    # 5. Deploy to Azure VM via SSH
+    # ----------------------------------------
+    - name: Deploy to Azure VM via SSH
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.AZURE_VM_HOST }}
+        username: ${{ secrets.AZURE_VM_USER }}
+        key: ${{ secrets.AZURE_VM_SSH_KEY }}
+        script: |
+          IMAGE="glitchit001/todo-app:latest"
+
+          echo "Pulling new Docker image..."
+          docker pull $IMAGE
+
+          echo "Stopping old container..."
+          docker stop todo-app || true
+
+          echo "Removing old container..."
+          docker rm todo-app || true
+
+          echo "Starting new container..."
+          docker run -d --name todo-app -p 80:5000 $IMAGE
+
